@@ -421,6 +421,13 @@ def get_login_params() -> dict:
     # Dict of login params supported by snowflake connector api to establish connection
     # {Key value name : [argparse argument name(s), default value, help]}
     # Each argument can have 1-2 flag values. All arguments must have a default value and help.
+    # Helper to coerce common truthy strings to bool
+    def _env_bool(name: str, default: bool = False) -> bool:
+        val = os.getenv(name)
+        if val is None:
+            return default
+        return str(val).strip().lower() in {"1", "true", "yes", "y", "on"}
+
     login_params = {  # TODO: Add help for each argument
         "account": [
             "--account",
@@ -478,7 +485,7 @@ def get_login_params() -> dict:
         ],
         "authenticator": [
             "--authenticator",
-            "snowflake",
+            os.getenv("SNOWFLAKE_AUTHENTICATOR", "snowflake"),
             """Authenticator for Snowflake:
 
 snowflake (default) to use the internal Snowflake authenticator.
@@ -496,6 +503,16 @@ OAUTH_AUTHORIZATION_CODE to use the OAuth 2.0 Authorization Code flow.
 OAUTH_CLIENT_CREDENTIALS to use the OAuth 2.0 Client Credentials flow.
 
 If the value is not snowflake, the user and password parameters must be your login credentials for the IdP.""",
+        ],
+        "insecure_mode": [
+            "--insecure-mode",
+            _env_bool("SNOWFLAKE_INSECURE_MODE", False),
+            "Set to True to bypass OCSP checks in environments where outbound access is restricted. Defaults to False.",
+        ],
+        "disable_ocsp_checks": [
+            "--disable-ocsp-checks",
+            _env_bool("SNOWFLAKE_DISABLE_OCSP_CHECKS", _env_bool("SNOWFLAKE_INSECURE_MODE", False)),
+            "Preferred over insecure_mode in recent connectors. Disables OCSP checks. Defaults to False.",
         ],
         "connection_name": [
             "--connection-name",

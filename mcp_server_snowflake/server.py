@@ -22,6 +22,7 @@ import yaml
 from fastmcp import FastMCP
 from fastmcp.tools import Tool
 from snowflake.connector import DictCursor, connect
+from dotenv import load_dotenv
 
 import mcp_server_snowflake.tools as tools
 from mcp_server_snowflake.environment import (
@@ -492,16 +493,25 @@ def initialize_resources(snowflake_service: SnowflakeService, server: FastMCP):
 
 def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
     if snowflake_service is not None:
+        # Track names to avoid collisions
+        used_names: set[str] = set()
         # Add tools for each configured search service
         if snowflake_service.search_services:
             for service in snowflake_service.search_services:
                 search_wrapper = tools.create_search_wrapper(
                     snowflake_service=snowflake_service, service_details=service
                 )
+                base_name = sanitize_tool_name(service.get("service_name"))
+                name = base_name
+                i = 2
+                while name in used_names:
+                    name = f"{base_name}_{i}"
+                    i += 1
+                used_names.add(name)
                 server.add_tool(
                     Tool.from_function(
                         fn=search_wrapper,
-                        name=sanitize_tool_name(service.get("service_name")),
+                        name=name,
                         description=service.get(
                             "description",
                             f"Search service: {service.get('service_name')}",
@@ -514,10 +524,17 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
                 cortex_analyst_wrapper = tools.create_cortex_analyst_wrapper(
                     snowflake_service=snowflake_service, service_details=service
                 )
+                base_name = sanitize_tool_name(service.get("service_name"))
+                name = base_name
+                i = 2
+                while name in used_names:
+                    name = f"{base_name}_{i}"
+                    i += 1
+                used_names.add(name)
                 server.add_tool(
                     Tool.from_function(
                         fn=cortex_analyst_wrapper,
-                        name=sanitize_tool_name(service.get("service_name")),
+                        name=name,
                         description=service.get(
                             "description",
                             f"Analyst service: {service.get('service_name')}",
@@ -527,6 +544,12 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
 
 
 def main():
+    # Load environment variables from .env if present before parsing args
+    try:
+        load_dotenv()
+    except Exception:
+        pass
+
     args = parse_arguments()
 
     # Create server with lifespan that has access to args
