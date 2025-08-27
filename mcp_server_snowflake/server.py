@@ -552,8 +552,8 @@ def main():
     # Load environment variables from .env if present before parsing args
     try:
         load_dotenv()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Error loading .env file: {e}")
 
     args = parse_arguments()
 
