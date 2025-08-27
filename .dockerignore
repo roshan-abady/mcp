@@ -1,0 +1,19 @@
+# Reduce build context size for faster builds
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+.DS_Store
+node_modules
+.env
+# Large caches
+**/.ruff_cache
+**/.pytest_cache
+**/.mypy_cache
+**/.cache
+# Editor files
+.vscode
+.idea
