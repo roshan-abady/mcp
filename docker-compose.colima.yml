@@ -1,0 +1,27 @@
+# Local Colima-friendly compose override for running the Snowflake MCP server
+# Builds for host architecture (no explicit platforms) and aligns config path.
+services:
+  mcp-server-snowflake:
+    build:
+      context: .
+      dockerfile: docker/server/Dockerfile
+    image: mcp-server-snowflake:local
+    container_name: mcp-server-snowflake
+    environment:
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT}
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_ROLE=${SNOWFLAKE_ROLE}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE}
+      - SNOWFLAKE_HOST=${SNOWFLAKE_HOST}
+      - SERVICE_CONFIG_FILE=/app/services/custom_config.yaml
+    volumes:
+      - ${HOME}/.mcp/snowflake_mcp_config.yaml:/app/services/custom_config.yaml:ro
+    ports:
+      - "9000:9000"
+    command: [
+      "mcp-server-snowflake",
+      "--service-config-file","/app/services/custom_config.yaml",
+      "--transport","streamable-http"
+    ]
+    restart: unless-stopped
