@@ -37,6 +37,7 @@ from mcp_server_snowflake.utils import (
     get_login_params,
     load_tools_config_resource,
     sanitize_tool_name,
+    validate_authentication_method,
 )
 
 # Used to quantify Snowflake usage
@@ -461,6 +462,9 @@ def create_lifespan(args):
             for key in get_login_params().keys()
             if getattr(args, key) is not None
         }
+        
+        # Validate and enforce externalbrowser authentication
+        connection_params = validate_authentication_method(connection_params)
         service_config_file = get_var(
             "service_config_file", "SERVICE_CONFIG_FILE", args
         )

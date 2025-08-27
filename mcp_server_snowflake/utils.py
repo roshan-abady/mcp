@@ -397,6 +397,57 @@ async def load_tools_config_resource(file_path: str) -> str:
     return json.dumps(tools_config)
 
 
+def validate_authentication_method(connection_params: dict) -> dict:
+    """
+    Validate that only externalbrowser authentication is used.
+    
+    This function enforces that the MCP server only uses externalbrowser
+    authentication for security reasons.
+    
+    Parameters
+    ----------
+    connection_params : dict
+        Dictionary of connection parameters
+        
+    Returns
+    -------
+    dict
+        Validated connection parameters with authenticator set to externalbrowser
+        
+    Raises
+    ------
+    ValueError
+        If an unsupported authentication method is specified
+    """
+    authenticator = connection_params.get("authenticator", "externalbrowser")
+    
+    if authenticator != "externalbrowser":
+        raise ValueError(
+            f"Only 'externalbrowser' authentication is supported for security reasons. "
+            f"Got: '{authenticator}'. Please use externalbrowser authentication which "
+            f"provides secure, interactive authentication through your web browser."
+        )
+    
+    # Ensure externalbrowser is set
+    connection_params["authenticator"] = "externalbrowser"
+    
+    # Remove password and private key related parameters as they are not needed
+    # for externalbrowser authentication and should not be used
+    params_to_remove = [
+        "password", "private_key", "private_key_file", "private_key_pwd",
+        "passcode", "passcode_in_password"
+    ]
+    
+    for param in params_to_remove:
+        if param in connection_params:
+            logger.warning(
+                f"Removing '{param}' parameter as it's not needed for externalbrowser authentication"
+            )
+            del connection_params[param]
+    
+    return connection_params
+
+
 def get_login_params() -> dict:
     """
     Get Snowflake login parameters configuration.
@@ -488,24 +539,14 @@ def get_login_params() -> dict:
         ],
         "authenticator": [
             "--authenticator",
-            None,  # Default is 'snowflake'. Don't want to pass this as only explicit argument later on.
+            "externalbrowser",  # Enforced to use externalbrowser authentication only
             """Authenticator for Snowflake:
 
-snowflake (default) to use the internal Snowflake authenticator.
+This MCP server only supports externalbrowser authentication for security reasons.
 
-externalbrowser to authenticate using your web browser and Okta, AD FS, or any other SAML 2.0-compliant identity provider (IdP) that has been defined for your account.
+externalbrowser authenticates using your web browser and Okta, AD FS, or any other SAML 2.0-compliant identity provider (IdP) that has been defined for your account.
 
-https://<okta_account_name>.okta.com (i.e. the URL endpoint for your Okta account) to authenticate through native Okta.
-
-oauth to authenticate using OAuth. You must also specify the token parameter and set its value to the OAuth access token.
-
-username_password_mfa to authenticate with MFA token caching. For more details, see Using MFA token caching to minimize the number of prompts during authentication — optional.
-
-OAUTH_AUTHORIZATION_CODE to use the OAuth 2.0 Authorization Code flow.
-
-OAUTH_CLIENT_CREDENTIALS to use the OAuth 2.0 Client Credentials flow.
-
-If the value is not snowflake, the user and password parameters must be your login credentials for the IdP.""",
+This method provides secure, interactive authentication without requiring passwords or private keys to be stored.""",
         ],
         "insecure_mode": [
             "--insecure-mode",

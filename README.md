@@ -46,38 +46,30 @@ analyst_services: # List all Cortex Analyst semantic models/views
 
 ## Connecting to Snowflake
 
-The MCP server uses the [Snowflake Python Connector](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect) for all authentication and connection methods. **Please refer to the official Snowflake documentation for comprehensive authentication options and best practices.**
+The MCP server uses the [Snowflake Python Connector](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect) for authentication and connection. **For security reasons, this MCP server only supports external browser authentication.**
 
-Connection parameters can be passed as CLI arguments and/or environment variables. The server supports all authentication methods available in the Snowflake Python Connector, including:
+Connection parameters can be passed as CLI arguments and/or environment variables. The server enforces the use of `externalbrowser` authentication, which provides secure, interactive authentication through your web browser and supports:
 
-- Username/password authentication
-- Key pair authentication
-- OAuth authentication
-- Single Sign-On (SSO)
-- Multi-factor authentication (MFA)
+- Single Sign-On (SSO) with Okta, AD FS, or any SAML 2.0-compliant identity provider
+- Multi-factor authentication (MFA) through your identity provider
+- Secure authentication without storing passwords or private keys
 
 ### Connection Parameters
 
 Connection parameters can be passed as CLI arguments and/or environment variables:
 
-| Parameter | CLI Arguments | Environment Variable | Description |
-|-----------|--------------|---------------------|-------------|
-| Account | --account | SNOWFLAKE_ACCOUNT | Account identifier (e.g. xy12345.us-east-1) |
-| Host | --host | SNOWFLAKE_HOST | Snowflake host URL |
-| User | --user, --username | SNOWFLAKE_USER | Username for authentication |
-| Password | --password | SNOWFLAKE_PASSWORD | Password or programmatic access token |
-| Role | --role | SNOWFLAKE_ROLE | Role to use for connection |
-| Warehouse | --warehouse | SNOWFLAKE_WAREHOUSE | Warehouse to use for queries |
-| Passcode in Password | --passcode-in-password | - | Whether passcode is embedded in password |
-| Passcode | --passcode | SNOWFLAKE_PASSCODE | MFA passcode for authentication |
-| Private Key | --private-key | SNOWFLAKE_PRIVATE_KEY | Private key for key pair authentication |
-| Private Key File | --private-key-file | SNOWFLAKE_PRIVATE_KEY_FILE | Path to private key file |
-| Private Key Password | --private-key-pwd | SNOWFLAKE_PRIVATE_KEY_PWD | Password for encrypted private key |
-| Authenticator | --authenticator | - | Authentication type (default: snowflake) |
-| Connection Name | --connection-name | - | Name of connection from connections.toml (or config.toml) file |
+| Parameter       | CLI Arguments      | Environment Variable    | Description                                                    |
+| --------------- | ------------------ | ----------------------- | -------------------------------------------------------------- |
+| Account         | --account          | SNOWFLAKE_ACCOUNT       | Account identifier (e.g. xy12345.us-east-1)                    |
+| Host            | --host             | SNOWFLAKE_HOST          | Snowflake host URL                                             |
+| User            | --user, --username | SNOWFLAKE_USER          | Username for authentication                                    |
+| Role            | --role             | SNOWFLAKE_ROLE          | Role to use for connection                                     |
+| Warehouse       | --warehouse        | SNOWFLAKE_WAREHOUSE     | Warehouse to use for queries                                   |
+| Authenticator   | --authenticator    | SNOWFLAKE_AUTHENTICATOR | Must be set to "externalbrowser" (enforced)                    |
+| Connection Name | --connection-name  | -                       | Name of connection from connections.toml (or config.toml) file |
 
-> [!WARNING]
-> **Deprecation Notice**: The CLI arguments `--account-identifier` and `--pat`, as well as the environment variable `SNOWFLAKE_PAT`, are deprecated and will be removed in a future release. Please use `--account` and `--password` (or `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_PASSWORD`) instead.
+> [!IMPORTANT]
+> **Security Notice**: This MCP server only supports `externalbrowser` authentication. Password-based authentication, private key authentication, and other methods are not supported for security reasons. The server will validate and enforce this requirement at startup.
 
 # Using with MCP Clients
 
@@ -167,12 +159,11 @@ The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is sug
 
 #### How do I connect to Snowflake?
 
-- The MCP server supports all connection methods supported by the Snowflake Python Connector.
-See [Connecting to Snowflake with the Python Connector](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect) for more information.
+- This MCP server only supports externalbrowser authentication for security reasons. This provides secure, interactive authentication through your web browser using SSO and identity providers like Okta, AD FS, or any SAML 2.0-compliant IdP. See [Connecting to Snowflake with the Python Connector](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect) for more information about externalbrowser authentication.
 
-#### Can I use a Programmatic Access Token (PAT) instead of a password?
+#### Can I use a Programmatic Access Token (PAT) or password authentication?
 
-- Yes. Pass it to the CLI flag --password or set as environment variable SNOWFLAKE_PASSWORD.
+- No. For security reasons, this MCP server only supports externalbrowser authentication. Password-based authentication, private key authentication, and other methods are not supported. The server will validate and enforce this requirement at startup.
 
 #### How do I try this?
 
@@ -184,7 +175,7 @@ See [Connecting to Snowflake with the Python Connector](https://docs.snowflake.c
 
 #### I'm receiving permission errors from my tool calls.
 
-- If using a Programmatic Access Tokens, note that they do not evaluate secondary roles. When creating them, please select a single role that has access to all services and their underlying objects OR select any role. A new PAT will need to be created to alter this property.
+- Ensure your Snowflake user has the appropriate permissions for the services you're trying to use. Contact your Snowflake administrator if you need additional role permissions or access to specific databases, schemas, or warehouses.
 
 #### How many Cortex Search or Cortex Analysts can I add?
 
