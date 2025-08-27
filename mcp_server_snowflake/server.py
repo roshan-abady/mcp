@@ -22,12 +22,10 @@ import yaml
 from fastmcp import FastMCP
 from fastmcp.tools import Tool
 from snowflake.connector import DictCursor, connect
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    # Make dotenv optional: define a no-op if python-dotenv isn't installed
-    def load_dotenv(*args, **kwargs):  # type: ignore[override]
-        return False
+try:  # Make python-dotenv optional at runtime
+    from dotenv import load_dotenv  # type: ignore
+except Exception:  # ImportError if package isn't installed
+    load_dotenv = None  # type: ignore[assignment]
 
 import mcp_server_snowflake.tools as tools
 from mcp_server_snowflake.environment import (
@@ -496,16 +494,6 @@ def initialize_resources(snowflake_service: SnowflakeService, server: FastMCP):
         return json.loads(tools_config)
 
 
-def _get_unique_tool_name(base_name: str, used_names: set[str]) -> str:
-    """Helper to resolve tool name collisions."""
-    name = base_name
-    i = 2
-    while name in used_names:
-        name = f"{base_name}_{i}"
-        i += 1
-    used_names.add(name)
-    return name
-
 def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
     if snowflake_service is not None:
         # Track names to avoid collisions
@@ -517,7 +505,12 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
                     snowflake_service=snowflake_service, service_details=service
                 )
                 base_name = sanitize_tool_name(service.get("service_name"))
-                name = _get_unique_tool_name(base_name, used_names)
+                name = base_name
+                i = 2
+                while name in used_names:
+                    name = f"{base_name}_{i}"
+                    i += 1
+                used_names.add(name)
                 server.add_tool(
                     Tool.from_function(
                         fn=search_wrapper,
@@ -535,7 +528,12 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
                     snowflake_service=snowflake_service, service_details=service
                 )
                 base_name = sanitize_tool_name(service.get("service_name"))
-                name = _get_unique_tool_name(base_name, used_names)
+                name = base_name
+                i = 2
+                while name in used_names:
+                    name = f"{base_name}_{i}"
+                    i += 1
+                used_names.add(name)
                 server.add_tool(
                     Tool.from_function(
                         fn=cortex_analyst_wrapper,
@@ -550,10 +548,11 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
 
 def main():
     # Load environment variables from .env if present before parsing args
-    try:
-        load_dotenv()
-    except Exception as e:
-        logger.warning(f"Error loading .env file: {e}")
+    if load_dotenv is not None:
+        try:
+            load_dotenv()
+        except Exception:
+            pass
 
     args = parse_arguments()
 
