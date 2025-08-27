@@ -428,6 +428,9 @@ def get_login_params() -> dict:
             return default
         return str(val).strip().lower() in {"1", "true", "yes", "y", "on"}
 
+    # Cache SNOWFLAKE_INSECURE_MODE value to avoid duplicate lookups
+    insecure_mode_env = _env_bool("SNOWFLAKE_INSECURE_MODE", False)
+
     login_params = {  # TODO: Add help for each argument
         "account": [
             "--account",
@@ -506,12 +509,12 @@ If the value is not snowflake, the user and password parameters must be your log
         ],
         "insecure_mode": [
             "--insecure-mode",
-            _env_bool("SNOWFLAKE_INSECURE_MODE", False),
+            insecure_mode_env,
             "Set to True to bypass OCSP checks in environments where outbound access is restricted. Defaults to False.",
         ],
         "disable_ocsp_checks": [
             "--disable-ocsp-checks",
-            _env_bool("SNOWFLAKE_DISABLE_OCSP_CHECKS", _env_bool("SNOWFLAKE_INSECURE_MODE", False)),
+            _env_bool("SNOWFLAKE_DISABLE_OCSP_CHECKS", insecure_mode_env),
             "Preferred over insecure_mode in recent connectors. Disables OCSP checks. Defaults to False.",
         ],
         "connection_name": [

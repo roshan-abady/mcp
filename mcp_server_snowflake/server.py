@@ -496,6 +496,16 @@ def initialize_resources(snowflake_service: SnowflakeService, server: FastMCP):
         return json.loads(tools_config)
 
 
+def _get_unique_tool_name(base_name: str, used_names: set[str]) -> str:
+    """Helper to resolve tool name collisions."""
+    name = base_name
+    i = 2
+    while name in used_names:
+        name = f"{base_name}_{i}"
+        i += 1
+    used_names.add(name)
+    return name
+
 def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
     if snowflake_service is not None:
         # Track names to avoid collisions
@@ -507,12 +517,7 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
                     snowflake_service=snowflake_service, service_details=service
                 )
                 base_name = sanitize_tool_name(service.get("service_name"))
-                name = base_name
-                i = 2
-                while name in used_names:
-                    name = f"{base_name}_{i}"
-                    i += 1
-                used_names.add(name)
+                name = _get_unique_tool_name(base_name, used_names)
                 server.add_tool(
                     Tool.from_function(
                         fn=search_wrapper,
@@ -530,12 +535,7 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
                     snowflake_service=snowflake_service, service_details=service
                 )
                 base_name = sanitize_tool_name(service.get("service_name"))
-                name = base_name
-                i = 2
-                while name in used_names:
-                    name = f"{base_name}_{i}"
-                    i += 1
-                used_names.add(name)
+                name = _get_unique_tool_name(base_name, used_names)
                 server.add_tool(
                     Tool.from_function(
                         fn=cortex_analyst_wrapper,
