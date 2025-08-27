@@ -559,6 +559,21 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
                     )
                 )
 
+        # Add SQL execution tool
+        sql_execution_wrapper = tools.create_sql_execution_wrapper(
+            snowflake_service=snowflake_service
+        )
+        sql_tool_name = "execute_sql"
+        if sql_tool_name not in used_names:
+            used_names.add(sql_tool_name)
+            server.add_tool(
+                Tool.from_function(
+                    fn=sql_execution_wrapper,
+                    name=sql_tool_name,
+                    description="Execute SQL SELECT, SHOW, DESCRIBE, and EXPLAIN queries on Snowflake database. Use this for data analysis, reporting, and exploring your data schema."
+                )
+            )
+
 
 def main():
     # Load environment variables from .env if present before parsing args

@@ -282,3 +282,122 @@ def create_cortex_analyst_wrapper(**kwargs):
             )
 
     return cortex_analyst_wrapper
+
+
+def execute_sql_query(
+    snowflake_service,
+    query: Annotated[str, Field(description="SQL query to execute on Snowflake")],
+    limit: Annotated[int, Field(description="Maximum number of rows to return", default=100)] = 100,
+) -> str:
+    """
+    Execute a SQL query on Snowflake and return the results.
+    
+    This tool allows you to run SQL queries directly against your Snowflake database.
+    Use this for data analysis, reporting, and ad-hoc queries.
+    
+    Parameters
+    ----------
+    query : str
+        The SQL query to execute
+    limit : int, default=100
+        Maximum number of rows to return to prevent overwhelming responses
+        
+    Returns
+    -------
+    str
+        JSON formatted results of the query execution
+        
+    Raises
+    ------
+    SnowflakeException
+        If query execution fails or contains unauthorized operations
+    """
+    import json
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Validate that the query is safe to execute
+        query_upper = query.strip().upper()
+        
+        # Allow SELECT, SHOW, DESCRIBE, EXPLAIN statements
+        allowed_prefixes = ['SELECT', 'SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN']
+        
+        if not any(query_upper.startswith(prefix) for prefix in allowed_prefixes):
+            raise SnowflakeException(
+                tool="SQL Execution",
+                message=f"Only {', '.join(allowed_prefixes)} queries are allowed for security reasons. Got: {query_upper.split()[0] if query_upper.split() else 'empty query'}"
+            )
+        
+        # Add LIMIT if not present and it's a SELECT statement
+        if query_upper.startswith('SELECT') and 'LIMIT' not in query_upper:
+            query = f"{query.rstrip(';')} LIMIT {limit}"
+        
+        # Execute the query using the service's connection
+        with snowflake_service.get_connection(use_dict_cursor=True) as (conn, cursor):
+            logger.info(f"Executing SQL query: {query}")
+            cursor.execute(query)
+            
+            # Handle different types of queries
+            if query_upper.startswith('SELECT'):
+                results = cursor.fetchall()
+                column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+                
+                return json.dumps({
+                    "success": True,
+                    "query": query,
+                    "columns": column_names,
+                    "row_count": len(results),
+                    "results": results[:limit]  # Ensure we don't exceed limit
+                }, indent=2, default=str)
+            else:
+                # For SHOW, DESCRIBE, etc. - fetch all results
+                results = cursor.fetchall()
+                column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+                
+                return json.dumps({
+                    "success": True,
+                    "query": query,
+                    "columns": column_names,
+                    "row_count": len(results),
+                    "results": results
+                }, indent=2, default=str)
+            
+    except SnowflakeException:
+        # Re-raise SnowflakeException as-is
+        raise
+    except Exception as e:
+        logger.error(f"Error executing SQL query: {e}")
+        raise SnowflakeException(
+            tool="SQL Execution",
+            message=f"Query execution failed: {str(e)}"
+        )
+
+
+def create_sql_execution_wrapper(snowflake_service):
+    """
+    Create a wrapper function for SQL execution.
+    
+    Parameters
+    ----------
+    snowflake_service : SnowflakeService
+        The Snowflake service instance to use for query execution
+        
+    Returns
+    -------
+    callable
+        A wrapper function that can be used as an MCP tool
+    """
+    def sql_execution_wrapper(
+        query: Annotated[str, Field(description="SQL query to execute on Snowflake")],
+        limit: Annotated[int, Field(description="Maximum number of rows to return", default=100)] = 100,
+    ) -> str:
+        """Execute SQL queries on Snowflake database."""
+        return execute_sql_query(
+            snowflake_service=snowflake_service,
+            query=query,
+            limit=limit
+        )
+    
+    return sql_execution_wrapper

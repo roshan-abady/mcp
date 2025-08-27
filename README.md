@@ -10,6 +10,7 @@ The MCP server currently supports the below Cortex AI capabilities:
 - **[Cortex Search](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview)**: Query unstructured data in Snowflake as commonly used in Retrieval Augmented Generation (RAG) applications.
 - **[Cortex Analyst](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst)**: Query structured data in Snowflake via rich semantic modeling.
 - **[Cortex Agent](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents)**: (**Coming Soon**) Agentic orchestrator across structured and unstructured data retrieval
+- **SQL Execution**: Execute SELECT, SHOW, DESCRIBE, and EXPLAIN queries directly on Snowflake for data analysis and exploration.
 
 # Getting Started
 
