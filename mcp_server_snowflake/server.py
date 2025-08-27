@@ -22,7 +22,12 @@ import yaml
 from fastmcp import FastMCP
 from fastmcp.tools import Tool
 from snowflake.connector import DictCursor, connect
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # Make dotenv optional: define a no-op if python-dotenv isn't installed
+    def load_dotenv(*args, **kwargs):  # type: ignore[override]
+        return False
 
 import mcp_server_snowflake.tools as tools
 from mcp_server_snowflake.environment import (
