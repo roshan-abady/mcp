@@ -24,7 +24,7 @@ from fastmcp.tools import Tool
 from snowflake.connector import DictCursor, connect
 try:  # Make python-dotenv optional at runtime
     from dotenv import load_dotenv  # type: ignore
-except Exception:  # ImportError if package isn't installed
+except ImportError:  # ImportError if package isn't installed
     load_dotenv = None  # type: ignore[assignment]
 
 import mcp_server_snowflake.tools as tools
@@ -506,10 +506,10 @@ def initialize_tools(snowflake_service: SnowflakeService, server: FastMCP):
                 )
                 base_name = sanitize_tool_name(service.get("service_name"))
                 name = base_name
-                i = 2
+                suffix_num = 2
                 while name in used_names:
-                    name = f"{base_name}_{i}"
-                    i += 1
+                    name = f"{base_name}_{suffix_num}"
+                    suffix_num += 1
                 used_names.add(name)
                 server.add_tool(
                     Tool.from_function(
@@ -551,8 +551,8 @@ def main():
     if load_dotenv is not None:
         try:
             load_dotenv()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error loading .env file: {e}")
 
     args = parse_arguments()
 
