@@ -99,6 +99,7 @@ def list_objects(
     like: str = None,
     starts_with: str = None,
 ):
+    bindvars = []
     if object_type == "image_repository":
         object_name = "image repositories"
     elif object_type == "compute_pool":
@@ -106,21 +107,27 @@ def list_objects(
     else:
         object_name = f"{object_type}s"
 
+    # Note: SHOW statements do not support variable binding. String formatting is
+    # safe here because object_type is restricted to a set of whitelisted values.
     statement = f"SHOW {object_name}"
 
     if like:
-        statement += f" LIKE '%{like.replace('%', '')}%'"
+        statement += " LIKE ?"
+        bindvars.extend([f"%{like.replace('%', '')}%"])
 
     if object_type in ["database", "compute_pool", "role", "user"]:
         pass
     elif database_name is None and schema_name is None:
         statement += " IN ACCOUNT"
     elif database_name and schema_name:
-        statement += f" IN SCHEMA {database_name}.{schema_name}"
+        statement += " IN SCHEMA identifier(?)"
+        bindvars.extend([f"{database_name}.{schema_name}"])
     elif database_name:
-        statement += f" IN DATABASE {database_name}"
+        statement += " IN DATABASE identifier(?)"
+        bindvars.extend([database_name])
     elif schema_name:
-        statement += f" IN SCHEMA {schema_name}"
+        statement += " IN SCHEMA identifier(?)"
+        bindvars.extend([schema_name])
     else:
         raise SnowflakeException(
             tool="list_objects",
@@ -128,17 +135,19 @@ def list_objects(
         )
 
     if starts_with:
-        statement += f" STARTS WITH '{starts_with}'"
+        # sanitizing string manually because bind variables are not supported here
+        sanitized_starts_with = starts_with.replace("'", "")
+        statement += f" STARTS WITH '{sanitized_starts_with}'"
 
     try:
-        result = execute_query(statement, snowflake_service)
+        result = execute_query(statement, snowflake_service, bindvars)
 
         if len(result) > 0:
             return result[0:1000]  # Limit to 1000 results
         else:
             return f"No matching {object_name} found."
     except Exception as e:
-        raise SnowflakeException(tool="list_semantic_views", message=str(e))
+        raise SnowflakeException(tool="list_objects", message=str(e))
 
 
 def parse_object(target_object: Any, obj_type: supported_objects):

@@ -298,6 +298,7 @@ class SnowflakeService:
                 **connection_params,
                 session_parameters=session_parameters,
                 client_session_keep_alive=True,
+                paramstyle="qmark",
             )
             if connection:  # Send zero compute query to capture query tag
                 self.send_initial_query(connection)
@@ -362,6 +363,7 @@ class SnowflakeService:
                     **connection_params,
                     session_parameters=session_parameters,
                     client_session_keep_alive=False,
+                    paramstyle="qmark",
                 )
 
             cursor = (

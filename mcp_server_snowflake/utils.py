@@ -55,7 +55,7 @@ def warn_deprecated_params() -> None:
         logger.info(f"Deprecated parameters: {', '.join(deprecated_found)}")
 
 
-def execute_query(statement: str, snowflake_service):
+def execute_query(statement: str, snowflake_service, bindvars: list[str] = []):
     """Execute a Snowflake query and return the results using Python connector dictionary cursor."""
     with snowflake_service.get_connection(
         use_dict_cursor=True,
@@ -64,7 +64,7 @@ def execute_query(statement: str, snowflake_service):
         con,
         cur,
     ):
-        cur.execute(statement)
+        cur.execute(statement, bindvars)
         return cur.fetchall()
 
 
