@@ -104,6 +104,9 @@ def show_semantic_expressions(
     elif database_name and schema_name:
         statement += " IN SCHEMA identifier(?)"
         bindvars.extend([f"{database_name}.{schema_name}"])
+    elif database_name:
+        statement += " IN DATABASE identifier(?)"
+        bindvars.extend([f"{database_name}"])
     else:
         statement += " IN ACCOUNT"
 
